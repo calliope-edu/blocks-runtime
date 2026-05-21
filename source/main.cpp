@@ -40,18 +40,45 @@ namespace pxt {
 // Unqualified `uBit` resolves via the `using pxt::uBit;` declaration at
 // the bottom of PxtShim.h — pxt-blocks's lifted .cpp files rely on that.
 
+// Period for the sensor-broadcaster fiber that fills the MbitMore STATE
+// characteristic. Matches pxt-blocks's original UPDATE_PERIOD in
+// Blocks.cpp — chosen short enough that scratch-vm sees fresh sensor
+// data within one VM tick (~30 ms), long enough not to monopolise the
+// codal scheduler.
+static const int UPDATE_PERIOD_MS = 19;
+
+// Sensor-broadcaster fiber. The pxt-blocks original spawned this from
+// `Blocks::startBlocksService()`; we instead spawn it directly from
+// main() because we don't have the pxt-Blocks-namespace shim layer.
+//
+// Without this fiber, BlocksService::update() never runs → the STATE
+// characteristic stays all-zero → the campus widget's `probeBle()` in
+// program-type.ts can't distinguish a real blocks runtime from the
+// "CODAL stub" case it explicitly guards against, and the device
+// looks like an unknown program even though MbitMore is advertised.
+static BlocksService *s_blocks_service = nullptr;
+
+static void blocksUpdateFiber() {
+    while (s_blocks_service != nullptr) {
+        s_blocks_service->update();
+        fiber_sleep(UPDATE_PERIOD_MS);
+    }
+}
+
 int main() {
     pxt::uBit.init();
 
-    // The Blocks scratch runtime spends almost all its life in the codal
-    // fiber scheduler waiting for BLE writes or USB serial frames. The
-    // BlocksService constructor registers GATT characteristics and the
-    // BlocksDevice singleton wires up the per-channel handlers. Both
-    // happen lazily on first reference, but instantiating them here makes
-    // the boot order explicit + lets us hold a reference if we ever need
-    // to introspect state from the watchdog.
+    // BlocksService constructor registers the MbitMore GATT service +
+    // characteristics; BlocksDevice singleton wires up the per-channel
+    // sensor/actuator handlers.
     static BlocksService svc;
+    s_blocks_service = &svc;
     BlocksDevice::getInstance();
+
+    // Spawn the broadcaster fiber that calls svc.update() every
+    // UPDATE_PERIOD_MS. Without this STATE never gets filled and the
+    // widget can't detect the runtime over BLE (see comment above).
+    create_fiber(blocksUpdateFiber);
 
     // Boot animation — a heart, matching microbit-v2-samples convention.
     // Visible confirmation that codal init succeeded; scratch-vm will
