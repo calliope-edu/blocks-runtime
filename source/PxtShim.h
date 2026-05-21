@@ -41,4 +41,9 @@ namespace pxt {
     codal::LevelDetectorSPL* getMicrophoneLevel();
 }
 
+// pxt-blocks's original C++ uses unqualified `uBit` (the full pxt.h does
+// `using namespace pxt;` at translation-unit level). Mirror that so the
+// lifted Blocks*.cpp files don't need to change.
+using pxt::uBit;
+
 #endif

@@ -29,18 +29,16 @@ namespace pxt {
         if (s_level == nullptr) {
             // Mic + level detector aren't started by default to save
             // power. Initialise on first request and keep the pointer
-            // for subsequent calls.
-            s_level = &uBit.audio.levelSPL;
+            // for subsequent calls. `audio.levelSPL` is already a
+            // LevelDetectorSPL* on codal v0.3.5, so no address-of.
+            s_level = uBit.audio.levelSPL;
         }
         return s_level;
     }
 }
 
-// Bring the codal instance into the global namespace for any code in this
-// repo that expects `uBit` without qualification (matches the convention
-// in microbit-v2-samples and pxt-blocks's BlocksDevice.cpp).
-MicroBit& uBit = pxt::uBit;
-
+// Unqualified `uBit` resolves via the `using pxt::uBit;` declaration at
+// the bottom of PxtShim.h — pxt-blocks's lifted .cpp files rely on that.
 
 int main() {
     pxt::uBit.init();
