@@ -1,0 +1,24 @@
+# Build artefacts
+/build/
+/libraries/
+MICROBIT.hex
+MICROBIT.bin
+*.elf
+*.map
+*.lst
+
+# CMake state
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+
+# Editor scratch
+.vscode/
+.idea/
+*.swp
+*~
+
+# Python utils byproducts
+__pycache__/
+*.pyc
